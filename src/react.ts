@@ -7,57 +7,24 @@
 import ReactExports from 'react'
 // eslint-disable-next-line import/extensions
 import useSyncExternalStoreExports from 'use-sync-external-store/shim/with-selector'
+import type { Create, TUseStore } from './types/react.ts'
+import type { StateCreator } from './types/vanilla.ts'
 import { createStore } from './vanilla.ts'
-import type {
-  Mutate,
-  StateCreator,
-  StoreApi,
-  StoreMutatorIdentifier,
-} from './vanilla.ts'
+
+export type { UseBoundStore } from './types/react.ts'
 
 const { useDebugValue } = ReactExports
 const { useSyncExternalStoreWithSelector } = useSyncExternalStoreExports
 
-type ExtractState<S> = S extends { getState: () => infer T } ? T : never
-
-type ReadonlyStoreApi<T> = Pick<
-  StoreApi<T>,
-  'getState' | 'getInitialState' | 'subscribe'
->
-
-type WithReact<S extends ReadonlyStoreApi<unknown>> = S & {
-  /** @deprecated please use api.getInitialState() */
-  getServerState?: () => ExtractState<S>
-}
-
 let didWarnAboutEqualityFn = false
 
-const identity = <T>(arg: T): T => arg
-
-export function useStore<S extends WithReact<ReadonlyStoreApi<unknown>>>(
-  api: S,
-): ExtractState<S>
-
-export function useStore<S extends WithReact<ReadonlyStoreApi<unknown>>, U>(
-  api: S,
-  selector: (state: ExtractState<S>) => U,
-): U
-
-/**
- * @deprecated The usage with three arguments is deprecated. Use `useStoreWithEqualityFn` from 'zustand/traditional'. The usage with one or two arguments is not deprecated.
- * https://github.com/pmndrs/zustand/discussions/1937
- */
-export function useStore<S extends WithReact<ReadonlyStoreApi<unknown>>, U>(
-  api: S,
-  selector: (state: ExtractState<S>) => U,
-  equalityFn: ((a: U, b: U) => boolean) | undefined,
-): U
+const identity = (arg: unknown) => arg
 
 export function useStore<TState, StateSlice>(
-  api: WithReact<ReadonlyStoreApi<TState>>,
-  selector: (state: TState) => StateSlice = identity as any,
-  equalityFn?: (a: StateSlice, b: StateSlice) => boolean,
+  ...args: TUseStore<TState, StateSlice>
 ) {
+  const [api, selector = identity as (arg: TState) => StateSlice, equalityFn] =
+    args
   if (
     import.meta.env?.MODE !== 'production' &&
     equalityFn &&
@@ -77,31 +44,6 @@ export function useStore<TState, StateSlice>(
   )
   useDebugValue(slice)
   return slice
-}
-
-export type UseBoundStore<S extends WithReact<ReadonlyStoreApi<unknown>>> = {
-  (): ExtractState<S>
-  <U>(selector: (state: ExtractState<S>) => U): U
-  /**
-   * @deprecated Use `createWithEqualityFn` from 'zustand/traditional'
-   */
-  <U>(
-    selector: (state: ExtractState<S>) => U,
-    equalityFn: (a: U, b: U) => boolean,
-  ): U
-} & S
-
-type Create = {
-  <T, Mos extends [StoreMutatorIdentifier, unknown][] = []>(
-    initializer: StateCreator<T, [], Mos>,
-  ): UseBoundStore<Mutate<StoreApi<T>, Mos>>
-  <T>(): <Mos extends [StoreMutatorIdentifier, unknown][] = []>(
-    initializer: StateCreator<T, [], Mos>,
-  ) => UseBoundStore<Mutate<StoreApi<T>, Mos>>
-  /**
-   * @deprecated Use `useStore` hook to bind store
-   */
-  <S extends StoreApi<unknown>>(store: S): UseBoundStore<S>
 }
 
 const createImpl = <T>(createState: StateCreator<T, [], []>) => {

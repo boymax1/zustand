@@ -7,13 +7,13 @@
 import ReactExports from 'react'
 // eslint-disable-next-line import/extensions
 import useSyncExternalStoreExports from 'use-sync-external-store/shim/with-selector'
-import { createStore } from './vanilla.ts'
 import type {
   Mutate,
   StateCreator,
   StoreApi,
   StoreMutatorIdentifier,
-} from './vanilla.ts'
+} from './types/vanilla.ts'
+import { createStore } from './vanilla.ts'
 
 const { useDebugValue } = ReactExports
 const { useSyncExternalStoreWithSelector } = useSyncExternalStoreExports
